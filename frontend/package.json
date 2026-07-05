@@ -3,17 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "bun build src/main.js --outdir=dist --target=browser --watch & tailwindcss -i src/app.css -o dist/app.css --watch",
+    "build": "bun run build.js",
+    "preview": "npx serve dist"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^4.0.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "svelte": "^5.0.0",
-    "vite": "^6.0.0"
+    "svelte": "^5.0.0"
   },
   "dependencies": {
     "@skeletonlabs/skeleton": "^3.0.0",

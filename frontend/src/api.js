@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'https://pmarket-vgtl.onrender.com';
+const BASE = 'https://pmarket-vgtl.onrender.com';
 
 export async function fetchJSON(path) {
   const r = await fetch(`${BASE}${path}`);

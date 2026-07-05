@@ -4,6 +4,3 @@ services:
     env: static
     buildCommand: bun install && bun run build
     staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://pmarket-vgtl.onrender.com
