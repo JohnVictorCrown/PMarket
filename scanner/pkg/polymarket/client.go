@@ -176,52 +176,78 @@ type closedPosition struct {
 }
 
 func (c *Client) fetchClosedStats(ctx context.Context, address string) (tradeStats, error) {
-	url := fmt.Sprintf("https://data-api.polymarket.com/closed-positions?user=%s&limit=500", address)
+	const pageSize = 50
+	const maxPages = 20
 
-	var lastErr error
-	for attempt := 0; attempt < 5; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(attempt*attempt)*time.Second + time.Duration(attempt*100)*time.Millisecond)
-		}
+	var total tradeStats
+	page := 0
 
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-		if err != nil {
-			return tradeStats{}, err
-		}
-
-		resp, err := c.httpCli.Do(req)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		if resp.StatusCode == http.StatusTooManyRequests {
-			lastErr = fmt.Errorf("API 429")
-			resp.Body.Close()
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			return tradeStats{}, fmt.Errorf("API %d", resp.StatusCode)
-		}
+	for page < maxPages {
+		offset := page * pageSize
+		url := fmt.Sprintf("https://data-api.polymarket.com/closed-positions?user=%s&limit=%d&offset=%d", address, pageSize, offset)
 
 		var positions []closedPosition
-		if err := json.NewDecoder(resp.Body).Decode(&positions); err != nil {
-			resp.Body.Close()
-			return tradeStats{}, err
-		}
-		resp.Body.Close()
+		var lastErr error
+		var ok bool
 
-		wins := 0
+		for attempt := 0; attempt < 5; attempt++ {
+			if attempt > 0 {
+				time.Sleep(time.Duration(attempt*attempt)*time.Second + time.Duration(attempt*100)*time.Millisecond)
+			}
+
+			req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+			if err != nil {
+				return tradeStats{}, err
+			}
+
+			resp, err := c.httpCli.Do(req)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+
+			if resp.StatusCode == http.StatusTooManyRequests {
+				lastErr = fmt.Errorf("API 429")
+				resp.Body.Close()
+				continue
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				resp.Body.Close()
+				return tradeStats{}, fmt.Errorf("API %d", resp.StatusCode)
+			}
+
+			if err := json.NewDecoder(resp.Body).Decode(&positions); err != nil {
+				resp.Body.Close()
+				return tradeStats{}, err
+			}
+			resp.Body.Close()
+			ok = true
+			break
+		}
+
+		if !ok {
+			return tradeStats{}, fmt.Errorf("rate limited after retries: %w", lastErr)
+		}
+
+		if len(positions) == 0 {
+			break
+		}
+
 		for _, p := range positions {
+			total.total++
 			if p.RealizedPnl > 0 {
-				wins++
+				total.wins++
 			}
 		}
-		return tradeStats{total: len(positions), wins: wins}, nil
+
+		if len(positions) < pageSize {
+			break
+		}
+		page++
 	}
-	return tradeStats{}, fmt.Errorf("rate limited after retries: %w", lastErr)
+
+	return total, nil
 }
 
 func volumeToFloat(v interface{}) float64 {
