@@ -98,7 +98,7 @@ API URL is hardcoded in `src/api.js` (`https://pmarket-vgtl.onrender.com`).
 
 1. **Scanner** — fetches leaderboard wallets from Polymarket API (`/v1/leaderboard`), enriches with closed position stats (`/closed-positions` via 5-goroutine pool with 429 retry), scores by `(PnL / TotalVolume) * 100000`, sorts descending, assigns ranks, caches result as JSON (TTL: 60m), generates static HTML report with sortable tables.
 
-2. **Service** — loads tracked wallets from `wallets.config`, polls their open/closed positions every N minutes via Polymarket data API raw HTTP. Compares against persisted store (JSON file with `Seen`, `Open`, `Copied` maps). Detects new positions → builds copy trade as `amountUSD / curPrice` → either places real CLOB order (via Go SDK with signer + API key auth) or executes paper buy (deducts from virtual balance). Detects closed positions → places sell order or paper sell (calculates PnL). Paper trader scales copy to 15% of remaining balance if insufficient.
+2. **Service** — loads tracked wallets from `wallets.config`, polls their open/closed positions every N minutes via Polymarket data API raw HTTP. Compares against persisted store (JSON file with `Seen`, `Open`, `Copied` maps). Detects new positions → calculates copy amount as `min(bankroll * COPY_PERCENT / 100, bankroll * MAX_OPEN_PERCENT / 100 - openCost)`, builds copy trade as `amountUSD / curPrice` → either places real CLOB order (via Go SDK with signer + API key auth) or executes paper buy (deducts from virtual balance). Skips if bankroll depleted or exposure cap hit. Detects closed positions → places sell order or paper sell (calculates PnL via close price from API).
 
 3. **Frontend** (Svelte 5, Bun-built) — polls `/uptime`, `/status`, `/balance` every 30s, displays key metrics in cards (uptime, live/dry-run, tracked wallets, trades copied, P&L, win rate, position value, total trades), open positions table, scan status table. Dark theme via Skeleton UI v3 wintry preset.
 
@@ -109,7 +109,9 @@ API URL is hardcoded in `src/api.js` (`https://pmarket-vgtl.onrender.com`).
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `8080` | HTTP port |
-| `COPY_AMOUNT_USD` | `10` | USD per copied trade |
+| `COPY_PERCENT` | `2` | % of bankroll per copy trade |
+| `MAX_OPEN_PERCENT` | `30` | Max % of bankroll in all open copies |
+| `COPY_AMOUNT_USD` | `10` | Fallback USD per trade (real mode only) |
 | `SCAN_INTERVAL_MIN` | `5` | Wallet scan interval |
 | `PAPER_STAKE_USD` | `100` | Virtual stake for paper trading |
 | `POLY_PRIVATE_KEY` | — | Private key for live trading |
@@ -167,6 +169,7 @@ Uses `github.com/GoPolymarket/polymarket-go-sdk/v2`. Read-only operations (scann
 ## Git History (Recent)
 
 ```
+9f8c4c4 feat: percentage-based position sizing with 30% exposure cap
 3f0c37a fix: paginate open/closed positions API with retry on 429, pass close price to paper/real sell orders
 33a1889 fix: paginate closed-positions API to get real trade counts instead of being capped at 50
 87b3a1e fix: patch :root [data-theme=wintry] -> [data-theme=wintry] so CSS vars apply on <html>
