@@ -76,19 +76,19 @@
     </div>
     <div class="card p-4">
       <p class="text-sm uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1">Total P&amp;L</p>
-      <p class="text-3xl font-bold {pnlClass(balance?.total_realized_pnl)}">{formatPnl(balance?.total_realized_pnl)}</p>
+      <p class="text-3xl font-bold {pnlClass(balance?.total_realized_pnl ?? balance?.paper_realized_pnl)}">{formatPnl(balance?.total_realized_pnl ?? balance?.paper_realized_pnl)}</p>
     </div>
     <div class="card p-4">
       <p class="text-sm uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1">Win Rate</p>
       <p class="text-3xl font-bold">{balance?.win_rate || '—'}</p>
     </div>
     <div class="card p-4">
-      <p class="text-sm uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1">Position Value</p>
-      <p class="text-3xl font-bold">{balance?.position_value?.toFixed(2) ?? '—'}</p>
+      <p class="text-sm uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1">Bankroll</p>
+      <p class="text-3xl font-bold">${(balance?.balance ?? balance?.position_value ?? 0).toFixed(2)}</p>
     </div>
     <div class="card p-4">
       <p class="text-sm uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-1">Total Trades</p>
-      <p class="text-3xl font-bold">{balance?.total_trades ?? '—'}</p>
+      <p class="text-3xl font-bold">{balance?.total_trades ?? balance?.paper_total_trades ?? '—'}</p>
     </div>
   </div>
 
@@ -135,7 +135,7 @@
         <tr><td>Scan Count</td><td>{status?.scan_count ?? 0}</td></tr>
         <tr><td>Store Wallets</td><td>{status?.store_wallets ?? 0}</td></tr>
         <tr><td>Store Trades</td><td>{status?.store_trades ?? 0}</td></tr>
-        <tr><td>Copy Amount</td><td>${status?.copy_amount_usd ?? 10}</td></tr>
+        <tr><td>Copy / Cap</td><td>{status?.copy_percent ?? 2}% / {status?.max_open_percent ?? 30}% exposure</td></tr>
         <tr><td>Scan Interval</td><td>{status?.scan_interval ?? '—'}</td></tr>
         <tr><td>Last Scan</td><td>{status?.last_scan ?? '—'}</td></tr>
       </tbody>

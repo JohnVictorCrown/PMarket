@@ -204,16 +204,17 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	storeWallets, storeTrades := s.store.Stats()
 
 	status := map[string]interface{}{
-		"uptime":          time.Since(s.started).Round(time.Second).String(),
-		"tracked_wallets": len(s.cfg.Wallets),
-		"scan_count":      s.tracker.ScanCount(),
-		"trades_copied":   s.tracker.TradesCopied(),
-		"store_wallets":   storeWallets,
-		"store_trades":    storeTrades,
-		"live_trading":    s.cfg.CanPlaceOrders(),
-		"copy_amount_usd": s.cfg.CopyAmountUSD,
-		"scan_interval":   fmt.Sprintf("%dm", s.cfg.ScanIntervalMin),
-		"paper_mode":      !s.cfg.CanPlaceOrders(),
+		"uptime":           time.Since(s.started).Round(time.Second).String(),
+		"tracked_wallets":  len(s.cfg.Wallets),
+		"scan_count":       s.tracker.ScanCount(),
+		"trades_copied":    s.tracker.TradesCopied(),
+		"store_wallets":    storeWallets,
+		"store_trades":     storeTrades,
+		"live_trading":     s.cfg.CanPlaceOrders(),
+		"copy_percent":     s.cfg.CopyPercent,
+		"max_open_percent": s.cfg.MaxOpenPercent,
+		"scan_interval":    fmt.Sprintf("%dm", s.cfg.ScanIntervalMin),
+		"paper_mode":       !s.cfg.CanPlaceOrders(),
 	}
 
 	if pt := s.tracker.Paper(); pt != nil {

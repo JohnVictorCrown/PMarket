@@ -168,13 +168,33 @@ func (t *Tracker) scanWallet(ctx context.Context, wallet string) (int, error) {
 }
 
 func (t *Tracker) handleNewOpenTrade(wallet string, pos polymarket.Position) {
-	amount := t.cfg.CopyAmountUSD
+	var amount float64
+
 	if t.paper != nil {
-		bal := t.paper.Balance()
-		if bal < amount {
-			amount = bal * 0.15
+		bankroll := t.paper.Balance() + t.paper.OpenPositionCost()
+		if bankroll <= 0 {
+			log.Printf("  !! SKIP [%s]: bankroll depleted", wallet[:10])
+			return
 		}
+		perTradeMax := bankroll * t.cfg.CopyPercent / 100
+		openCost := t.paper.OpenPositionCost()
+		remainingCapacity := bankroll*t.cfg.MaxOpenPercent/100 - openCost
+
+		amount = perTradeMax
+		if remainingCapacity < amount {
+			amount = remainingCapacity
+		}
+		if amount <= 0 {
+			log.Printf("  !! SKIP [%s]: max exposure reached ($%.2f / %.0f%% of $%.2f)",
+				wallet[:10], openCost, t.cfg.MaxOpenPercent, bankroll)
+			return
+		}
+		log.Printf("  >> COPY [%s]: %.1f%% of $%.2f bankroll = $%.2f (open: $%.2f / %.0f%% cap)",
+			wallet[:10], t.cfg.CopyPercent, bankroll, amount, openCost, t.cfg.MaxOpenPercent)
+	} else {
+		amount = t.cfg.CopyAmountUSD
 	}
+
 	trade := t.client.BuildCopyTrade(pos, amount)
 	log.Printf("  >> NEW OPEN TRADE: %s → %s (%s) at %.4f, shares: %.2f, $%.2f",
 		wallet[:10], trade.Market, trade.Outcome, trade.Price, trade.Size, amount)

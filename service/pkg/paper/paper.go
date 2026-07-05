@@ -119,6 +119,16 @@ func (p *PaperTrader) RealizedPnl() float64 {
 	return p.data.RealizedPnl
 }
 
+func (p *PaperTrader) OpenPositionCost() float64 {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	total := 0.0
+	for _, pos := range p.data.Positions {
+		total += pos.Size * pos.Price
+	}
+	return total
+}
+
 func (p *PaperTrader) UnrealizedPnl(assetID string, curPrice float64) float64 {
 	p.mu.Lock()
 	defer p.mu.Unlock()

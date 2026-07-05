@@ -14,6 +14,8 @@ type Config struct {
 	PaperPath       string
 	PaperStakeUSD   float64
 	CopyAmountUSD   float64
+	CopyPercent     float64
+	MaxOpenPercent  float64
 	ScanIntervalMin int
 	PrivateKey      string
 	APIKey          string
@@ -29,6 +31,8 @@ func Load() (*Config, error) {
 		PaperPath:       envStr("PAPER_PATH", "paper_trades.json"),
 		PaperStakeUSD:   envFloat("PAPER_STAKE_USD", 100),
 		CopyAmountUSD:   envFloat("COPY_AMOUNT_USD", 10),
+		CopyPercent:     envFloat("COPY_PERCENT", 2),
+		MaxOpenPercent:  envFloat("MAX_OPEN_PERCENT", 30),
 		ScanIntervalMin: envInt("SCAN_INTERVAL_MIN", 5),
 		PrivateKey:      os.Getenv("POLY_PRIVATE_KEY"),
 		APIKey:          os.Getenv("POLY_API_KEY"),
