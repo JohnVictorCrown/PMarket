@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BASE = import.meta.env.VITE_API_URL || 'https://pmarket-vgtl.onrender.com';
 
 export async function fetchJSON(path) {
   const r = await fetch(`${BASE}${path}`);

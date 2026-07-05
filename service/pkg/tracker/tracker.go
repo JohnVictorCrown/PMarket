@@ -163,9 +163,16 @@ func (t *Tracker) scanWallet(ctx context.Context, wallet string) (int, error) {
 }
 
 func (t *Tracker) handleNewOpenTrade(wallet string, pos polymarket.Position) {
-	trade := t.client.BuildCopyTrade(pos, t.cfg.CopyAmountUSD)
+	amount := t.cfg.CopyAmountUSD
+	if t.paper != nil {
+		bal := t.paper.Balance()
+		if bal < amount {
+			amount = bal * 0.15
+		}
+	}
+	trade := t.client.BuildCopyTrade(pos, amount)
 	log.Printf("  >> NEW OPEN TRADE: %s → %s (%s) at %.4f, shares: %.2f, $%.2f",
-		wallet[:10], trade.Market, trade.Outcome, trade.Price, trade.Size, t.cfg.CopyAmountUSD)
+		wallet[:10], trade.Market, trade.Outcome, trade.Price, trade.Size, amount)
 
 	t.store.SetCopied(wallet, pos.Asset, store.CopyInfo{
 		Size:    trade.Size,

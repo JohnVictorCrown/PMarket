@@ -28,6 +28,7 @@ func New(cfg *config.Config, tr *tracker.Tracker, st *store.Store, cl *polymarke
 
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.handleRoot)
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/uptime", s.handleUptime)
 	mux.HandleFunc("/status", s.handleStatus)
@@ -51,6 +52,43 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PMarket</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f5f5f5; color: #333; }
+    .card { text-align: center; background: #fff; padding: 48px 64px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { font-size: 32px; margin-bottom: 8px; color: #1a1a2e; }
+    p { color: #666; margin-bottom: 24px; }
+    .links { display: flex; gap: 12px; justify-content: center; }
+    a { display: inline-block; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; background: #1a1a2e; color: #fff; transition: background 0.2s; }
+    a:hover { background: #e94560; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>PMarket</h1>
+    <p>Polymarket Copy Trading Platform</p>
+    <div class="links">
+      <a href="/status">API Status</a>
+      <a href="/balance">Balance</a>
+      <a href="/uptime">Uptime</a>
+    </div>
+  </div>
+</body>
+</html>`)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
