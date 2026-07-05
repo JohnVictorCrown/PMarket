@@ -6,4 +6,4 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://quant-api.onrender.com
+        value: https://pmarket-vgtl.onrender.com
