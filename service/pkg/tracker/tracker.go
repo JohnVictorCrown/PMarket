@@ -124,6 +124,11 @@ func (t *Tracker) scanWallet(ctx context.Context, wallet string) (int, error) {
 		currentOpen[pos.Asset] = true
 	}
 
+	closePriceMap := make(map[string]float64)
+	for _, pos := range closedPositions {
+		closePriceMap[pos.Asset] = pos.CurPrice
+	}
+
 	prevOpen := t.store.GetOpenAssets(wallet)
 	prevOpenSet := make(map[string]bool)
 	for _, id := range prevOpen {
@@ -147,7 +152,7 @@ func (t *Tracker) scanWallet(ctx context.Context, wallet string) (int, error) {
 		if !currentOpen[assetID] {
 			if t.store.IsCopied(wallet, assetID) {
 				newCount++
-				t.handleClosedTrade(wallet, assetID)
+				t.handleClosedTrade(wallet, assetID, closePriceMap[assetID])
 			}
 			t.store.SetOpen(wallet, assetID, false)
 		}
@@ -202,19 +207,24 @@ func (t *Tracker) handleNewOpenTrade(wallet string, pos polymarket.Position) {
 	}
 }
 
-func (t *Tracker) handleClosedTrade(wallet, assetID string) {
+func (t *Tracker) handleClosedTrade(wallet, assetID string, closePrice float64) {
 	info, ok := t.store.GetCopied(wallet, assetID)
 	if !ok {
 		return
 	}
 
-	log.Printf("  >> CLOSED TRADE: %s → %s (%s) — closing %.2f shares",
-		wallet[:10], info.Market, info.Outcome, info.Size)
+	price := info.Price
+	if closePrice > 0 {
+		price = closePrice
+	}
+
+	log.Printf("  >> CLOSED TRADE: %s → %s (%s) — closing %.2f shares @ %.4f",
+		wallet[:10], info.Market, info.Outcome, info.Size, price)
 
 	if t.client.CanTrade() {
 		trade := polymarket.CopyTrade{
 			TokenID: assetID,
-			Price:   info.Price,
+			Price:   price,
 			Size:    info.Size,
 			Market:  info.Market,
 			Outcome: info.Outcome,
@@ -228,7 +238,7 @@ func (t *Tracker) handleClosedTrade(wallet, assetID string) {
 			t.mu.Unlock()
 		}
 	} else if t.paper != nil {
-		pnl, err := t.paper.Sell(assetID, info.Price)
+		pnl, err := t.paper.Sell(assetID, price)
 		if err != nil {
 			log.Printf("  !! PAPER SELL FAILED: %v", err)
 		} else {

@@ -65,36 +65,73 @@ func (c *Client) CanTrade() bool {
 }
 
 func (c *Client) FetchOpenPositions(ctx context.Context, walletAddr string) ([]Position, error) {
-	return c.fetchPositions(ctx, fmt.Sprintf("https://data-api.polymarket.com/positions?user=%s&limit=500", walletAddr))
+	return c.fetchAllPositions(ctx, "positions", walletAddr)
 }
 
 func (c *Client) FetchClosedPositions(ctx context.Context, walletAddr string) ([]Position, error) {
-	return c.fetchPositions(ctx, fmt.Sprintf("https://data-api.polymarket.com/closed-positions?user=%s&limit=500", walletAddr))
+	return c.fetchAllPositions(ctx, "closed-positions", walletAddr)
 }
 
-func (c *Client) fetchPositions(ctx context.Context, url string) ([]Position, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+func (c *Client) fetchAllPositions(ctx context.Context, endpoint, walletAddr string) ([]Position, error) {
+	const pageSize = 50
+	const maxPages = 20
 
-	resp, err := c.httpCli.Do(req)
-	if err != nil {
-		return nil, err
+	var all []Position
+	for page := 0; page < maxPages; page++ {
+		offset := page * pageSize
+		positions, err := c.fetchPositionsPage(ctx, endpoint, walletAddr, pageSize, offset)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, positions...)
+		if len(positions) < pageSize {
+			break
+		}
 	}
-	defer resp.Body.Close()
+	return all, nil
+}
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API %d: %s", resp.StatusCode, string(body))
+func (c *Client) fetchPositionsPage(ctx context.Context, endpoint, walletAddr string, limit, offset int) ([]Position, error) {
+	url := fmt.Sprintf("https://data-api.polymarket.com/%s?user=%s&limit=%d&offset=%d", endpoint, walletAddr, limit, offset)
+
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt*attempt)*time.Second + time.Duration(attempt*100)*time.Millisecond)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := c.httpCli.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			lastErr = fmt.Errorf("API 429")
+			resp.Body.Close()
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			return nil, fmt.Errorf("API %d: %s", resp.StatusCode, string(body))
+		}
+
+		var positions []Position
+		if err := json.NewDecoder(resp.Body).Decode(&positions); err != nil {
+			resp.Body.Close()
+			return nil, err
+		}
+		resp.Body.Close()
+		return positions, nil
 	}
-
-	var positions []Position
-	if err := json.NewDecoder(resp.Body).Decode(&positions); err != nil {
-		return nil, err
-	}
-
-	return positions, nil
+	return nil, fmt.Errorf("rate limited after retries: %w", lastErr)
 }
 
 type CopyTrade struct {
