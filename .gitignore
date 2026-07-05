@@ -1,0 +1,6 @@
+/output/
+*.exe
+*.test
+*.out
+vendor/
+/frontend/node_modules
