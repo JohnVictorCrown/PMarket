@@ -160,10 +160,15 @@ Uses `github.com/GoPolymarket/polymarket-go-sdk/v2`. Read-only operations (scann
 ## Known Issues & Fixes
 
 - **Skeleton CSS `:root [data-theme=wintry]` selector** uses a descendant combinator (space), which doesn't match `<html data-theme="wintry">` since `<html>` IS `:root`. Fixed in `build.js` by post-processing the generated CSS: replaces `:root [data-theme=wintry]` with `[data-theme=wintry]`.
+- **Service `fetchPositions` capped at 50 results** — same API pagination issue as scanner. Fixed in `fetchAllPositions` with offset-based pagination (50 per page, up to 20 pages).
+- **Service 429 rate limits** — `fetchPositionsPage` now retries with exponential backoff (up to 5 attempts), same as scanner.
+- **Paper/real sells used buy price** — `handleClosedTrade` was passing `info.Price` (buy price) as the sell price, making PnL always zero and real sell orders unfillable. Fixed by building a `closePriceMap` from the closed positions API response and passing the actual close/curPrice to both `Sell()` and `CloseOrder()`.
 
 ## Git History (Recent)
 
 ```
+3f0c37a fix: paginate open/closed positions API with retry on 429, pass close price to paper/real sell orders
+33a1889 fix: paginate closed-positions API to get real trade counts instead of being capped at 50
 87b3a1e fix: patch :root [data-theme=wintry] -> [data-theme=wintry] so CSS vars apply on <html>
 d6dfc6f ok
 85896bb add bun-plugin-svelte for proper Svelte bundling
