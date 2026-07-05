@@ -1,9 +1,11 @@
 import { build, $ } from 'bun';
-import { existsSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
+import { SveltePlugin } from 'bun-plugin-svelte';
 
-if (!existsSync('dist')) {
-  await $`mkdir -p dist`;
+if (existsSync('dist')) {
+  rmSync('dist', { recursive: true });
 }
+await $`mkdir -p dist`;
 
 console.log('building CSS...');
 await $`npx tailwindcss -i src/app.css -o dist/app.css --minify`;
@@ -14,6 +16,7 @@ await build({
   outdir: './dist',
   target: 'browser',
   minify: true,
+  plugins: [SveltePlugin()],
 });
 
 console.log('generating index.html...');

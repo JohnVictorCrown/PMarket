@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@skeletonlabs/skeleton": "^3.0.0",
-    "@skeletonlabs/tw-plugin": "^0.4.0"
+    "@skeletonlabs/tw-plugin": "^0.4.0",
+    "bun-plugin-svelte": "^0.0.6"
   }
 }
