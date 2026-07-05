@@ -1,5 +1,5 @@
 import { build, $ } from 'bun';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, readFileSync, writeFileSync } from 'fs';
 import { SveltePlugin } from 'bun-plugin-svelte';
 
 if (existsSync('dist')) {
@@ -9,6 +9,13 @@ await $`mkdir -p dist`;
 
 console.log('building CSS...');
 await $`npx tailwindcss -i src/app.css -o dist/app.css --minify`;
+
+// Skeleton generates :root [data-theme=wintry] (descendant selector)
+// which doesn't match <html data-theme="wintry"> since html IS :root.
+// Fix: change to [data-theme=wintry] so it matches the html element directly.
+let css = readFileSync('dist/app.css', 'utf-8');
+css = css.replace(/:root \[data-theme=wintry\]/g, '[data-theme=wintry]');
+writeFileSync('dist/app.css', css);
 
 console.log('bundling JS...');
 await build({
