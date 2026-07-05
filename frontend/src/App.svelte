@@ -2,11 +2,11 @@
   import { onMount } from 'svelte';
   import { fetchJSON, keepalive } from './api.js';
 
-  let uptime = '—';
-  let status = null;
-  let balance = null;
-  let error = '';
-  let lastUpdated = '';
+  let uptime = $state('—');
+  let status = $state(null);
+  let balance = $state(null);
+  let error = $state('');
+  let lastUpdated = $state('');
 
   onMount(() => {
     load();
